@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CriptoBraille - Laboratório de Criptografia Braille</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Um laboratório interativo de criptografia Braille. Converta texto em braille, serialize fluxos binários e codifique em hexadecimal ou octal com busca e destaque em tempo real.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Variables & Design Tokens */
+    :root {
+      --bg-dark: #0a0915;
+      --bg-card: rgba(18, 17, 36, 0.65);
+      --bg-card-hover: rgba(25, 23, 50, 0.8);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-color-glow: rgba(0, 242, 254, 0.3);
+      
+      --color-primary: #00f2fe;     /* Cyan glow */
+      --color-secondary: #f355da;   /* Magenta glow */
+      --color-accent: #00ff87;      /* Neon Green */
+      --color-text: #e2e8f0;
+      --color-text-muted: #94a3b8;
+      
+      --font-ui: 'Outfit', sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+      
+      --glow-cyan: 0 0 15px rgba(0, 242, 254, 0.4);
+      --glow-magenta: 0 0 15px rgba(243, 85, 218, 0.4);
+      
+      --transition-speed: 0.25s;
+    }
+
+    /* Base Styling */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--color-text);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(243, 85, 218, 0.05) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    /* Custom Scrollbar for Webkit */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+
+    /* Layout Structure */
+    .app-container {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      min-height: 100vh;
+    }
+
+    /* Sidebar controls */
+    .sidebar {
+      background: rgba(10, 9, 21, 0.85);
+      border-right: 1px solid var(--border-color);
+      backdrop-filter: blur(20px);
+      padding: 2rem 1.5rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    /* Header styling inside sidebar */
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo-icon {
+      font-size: 2.2rem;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.3));
+    }
+
+    .logo-text h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, #a5b4fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text p {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+
+    /* Control Groups */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .control-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-badge {
+      background: rgba(0, 242, 254, 0.1);
+      color: var(--color-primary);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-family: var(--font-code);
+      border: 1px solid rgba(0, 242, 254, 0.2);
+    }
+
+    /* Textarea & Inputs */
+    textarea {
+      width: 100%;
+      height: 160px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.8rem;
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      transition: all var(--transition-speed) ease;
+    }
+
+    textarea:focus {
+      border-color: var(--color-primary);
+      box-shadow: var(--glow-cyan);
+    }
+
+    /* Styled Range Slider */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      transition: background var(--transition-speed);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      cursor: pointer;
+      box-shadow: var(--glow-cyan);
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Styled Search Input */
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.8rem 1rem 0.8rem 2.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--color-secondary);
+      box-shadow: var(--glow-magenta);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    /* Base Toggle (Octal / Hex) */
+    .toggle-container {
+      display: flex;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 4px;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-option {
+      flex: 1;
+      text-align: center;
+      padding: 0.6rem 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      z-index: 2;
+      transition: color var(--transition-speed);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .toggle-option.active {
+      color: #fff;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      width: calc(50% - 4px);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      border-radius: 8px;
+      z-index: 1;
+      transition: transform var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 10px rgba(0, 242, 254, 0.2);
+    }
+
+    .toggle-container.hex-active .toggle-slider {
+      transform: translateX(100%);
+    }
+
+    /* Sidebar Footer Details */
+    .sidebar-footer {
+      margin-top: auto;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.25);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1rem;
+      line-height: 1.4;
+    }
+
+    /* Main Steps Viewport */
+    .main-viewport {
+      padding: 2rem 3rem;
+      overflow-y: auto;
+      max-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Section Step Cards */
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 1.8rem 2.2rem;
+      backdrop-filter: blur(10px);
+      transition: transform var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+      position: relative;
+    }
+
+    .step-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: var(--bg-card-hover);
+    }
+
+    .step-card.active-step {
+      border-color: var(--color-primary);
+      box-shadow: 0 10px 30px rgba(0, 242, 254, 0.04);
+    }
+
+    /* Step Header */
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.8rem;
+    }
+
+    .step-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .step-number {
+      font-family: var(--font-code);
+      font-weight: 700;
+      color: var(--color-secondary);
+      background: rgba(243, 85, 218, 0.1);
+      border: 1px solid rgba(243, 85, 218, 0.2);
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    .step-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Output Layouts */
+    .output-box {
+      font-family: var(--font-code);
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.6;
+      font-size: 1rem;
+      min-height: 60px;
+    }
+
+    .empty-state {
+      color: var(--color-text-muted);
+      font-style: italic;
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+    }
+
+    /* Highlight CSS - Custom and Neon */
+    mark {
+      background: rgba(243, 85, 218, 0.22);
+      color: #fff;
+      border-bottom: 2px solid var(--color-secondary);
+      box-shadow: 0 2px 8px rgba(243, 85, 218, 0.2);
+      text-shadow: 0 0 5px rgba(243, 85, 218, 0.5);
+      padding: 1px 0;
+      border-radius: 2px;
+    }
+
+    /* Step 1 & 2 Wrapped Preview */
+    .preview-line {
+      display: flex;
+      flex-wrap: nowrap;
+      margin-bottom: 0.4rem;
+      letter-spacing: 2px;
+    }
+    
+    .preview-line span {
+      display: inline-block;
+      width: 14px;
+      text-align: center;
+      transition: background-color var(--transition-speed);
+      border-radius: 2px;
+    }
+
+    .preview-line span.char-newline {
+      color: rgba(255, 255, 255, 0.15);
+      font-size: 0.8rem;
+    }
+
+    .braille-font {
+      font-size: 1.2rem;
+      letter-spacing: 3px;
+    }
+    
+    .braille-font span {
+      width: 16px;
+    }
+
+    /* Step 3 - Interactive & Visual Grid */
+    .step3-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+    }
+
+    .wrapped-line-block {
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 14px;
+      padding: 1.2rem;
+    }
+
+    .wrapped-line-info {
+      font-size: 0.8rem;
+      color: var(--color-primary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .grid-container {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding-bottom: 0.8rem;
+    }
+
+    /* Individual Braille Column Cell */
+    .braille-cell-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.01);
+      padding: 8px 4px;
+      border-radius: 8px;
+      min-width: 42px;
+      transition: all var(--transition-speed);
+    }
+
+    .braille-cell-col.highlight {
+      border-color: rgba(243, 85, 218, 0.3);
+      background: rgba(243, 85, 218, 0.06);
+      box-shadow: 0 0 10px rgba(243, 85, 218, 0.1) inset;
+    }
+
+    .cell-orig {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+      height: 20px;
+    }
+
+    .cell-braille {
+      font-size: 1.2rem;
+      color: var(--color-primary);
+      margin-bottom: 8px;
+      height: 24px;
+    }
+
+    /* The Dot Grid */
+    .cell-dots-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 8px);
+      gap: 4px;
+      margin-bottom: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 5px;
+      border-radius: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      transition: all var(--transition-speed);
+    }
+
+    .dot.active {
+      background: var(--color-primary);
+      box-shadow: 0 0 6px var(--color-primary);
+    }
+    
+    .braille-cell-col.highlight .dot.active {
+      background: var(--color-secondary);
+      box-shadow: 0 0 6px var(--color-secondary);
+    }
+
+    /* Cell Binary Text (grouped) */
+    .cell-binary-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.7rem;
+      font-family: var(--font-code);
+      color: var(--color-text-muted);
+      text-align: center;
+    }
+
+    .cell-binary-stack div {
+      letter-spacing: 1px;
+    }
+
+    .braille-cell-col.highlight .cell-binary-stack {
+      color: var(--color-secondary);
+      font-weight: bold;
+    }
+
+    /* Subline Outputs (Dots/Binary text blocks) */
+    .sublines-section {
+      margin-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .subline-item {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .subline-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .subline-display {
+      font-family: var(--font-code);
+      letter-spacing: 1px;
+      font-size: 0.95rem;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 6px 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .subline-display span {
+      display: inline-block;
+      transition: background-color var(--transition-speed);
+      border-radius: 2px;
+    }
+    
+    .subline-display span.highlight {
+      background: rgba(243, 85, 218, 0.25);
+      border-bottom: 2px solid var(--color-secondary);
+      text-shadow: 0 0 4px var(--color-secondary);
+      color: #fff;
+    }
+
+    /* Step 4 & 5 Outputs styling */
+    .serialized-stream {
+      font-family: var(--font-code);
+      font-size: 1rem;
+      line-height: 1.7;
+      letter-spacing: 1.5px;
+      word-break: break-all;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      padding: 1.2rem;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .serialized-stream span {
+      transition: background-color var(--transition-speed);
+      border-radius: 2px;
+    }
+
+    .serialized-stream span.highlight {
+      background: rgba(243, 85, 218, 0.25);
+      border-bottom: 2px solid var(--color-secondary);
+      text-shadow: 0 0 4px var(--color-secondary);
+      color: #fff;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 950px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .sidebar {
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 1.5rem;
+      }
+      
+      .main-viewport {
+        padding: 1.5rem;
+        max-height: none;
+        overflow-y: visible;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Control Panel -->
+    <aside class="sidebar">
+      <div class="logo-container">
+        <div class="logo-icon">⠿</div>
+        <div class="logo-text">
+          <h1>CriptoBraille</h1>
+          <p>Braille Cipher Lab</p>
+        </div>
+      </div>
+      
+      <!-- Input Text Control -->
+      <div class="control-group">
+        <label class="control-label" for="text-input">
+          Entrada de Texto
+          <span id="char-counter" class="control-badge">0 / 800</span>
+        </label>
+        <textarea id="text-input" placeholder="Digite sua mensagem para criptografar em Braille... Ex: Ola Mundo!" maxlength="800">Olá Mundo!</textarea>
+      </div>
+
+      <!-- Line Length Control -->
+      <div class="control-group">
+        <label class="control-label" for="length-slider">
+          Tamanho da Linha (L)
+          <span id="length-val" class="control-badge">15 caracs.</span>
+        </label>
+        <div class="slider-container">
+          <input type="range" id="length-slider" min="5" max="40" value="15">
+        </div>
+      </div>
+
+      <!-- Search Highlight Control -->
+      <div class="control-group">
+        <label class="control-label" for="search-input">
+          Localizar e Destacar
+        </label>
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Termo de pesquisa..." autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Encoding Base Control -->
+      <div class="control-group">
+        <label class="control-label">
+          Codificação (Passo 5)
+        </label>
+        <div id="base-toggle" class="toggle-container">
+          <div class="toggle-slider"></div>
+          <div class="toggle-option active" id="toggle-oct">Octal</div>
+          <div class="toggle-option" id="toggle-hex">Hexadecimal</div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <p>Aplicações Web Avançadas</p>
+        <p>Desenvolvido com tecnologia de ponta para criptografia e decodificação visual.</p>
+      </div>
+    </aside>
+
+    <!-- Main Output Viewport -->
+    <main class="main-viewport">
+      
+      <!-- Step 1: Wrapped Text Preview -->
+      <section class="step-card" id="card-step1">
+        <div class="step-header">
+          <div class="step-title-group">
+            <div class="step-number">1</div>
+            <div>
+              <h2 class="step-title">Texto de Entrada Enquadrado</h2>
+              <p class="step-desc">O texto de entrada ajustado ao tamanho de linha máximo configurado (L).</p>
+            </div>
+          </div>
+        </div>
+        <div class="output-box" id="step1-output">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Step 2: Braille Unicode Preview -->
+      <section class="step-card" id="card-step2">
+        <div class="step-header">
+          <div class="step-title-group">
+            <div class="step-number">2</div>
+            <div>
+              <h2 class="step-title">Conversão Braille Unicode</h2>
+              <p class="step-desc">Conversão dos caracteres do texto em caracteres correspondentes da tabela Unicode Braille.</p>
+            </div>
+          </div>
+        </div>
+        <div class="output-box" id="step2-output">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Step 3: Decomposition into 3 sub-lines -->
+      <section class="step-card" id="card-step3">
+        <div class="step-header">
+          <div class="step-title-group">
+            <div class="step-number">3</div>
+            <div>
+              <h2 class="step-title">Decomposição em 3 Sublinhas</h2>
+              <p class="step-desc">Decomposição das células Braille em 3 sublinhas de pontos e binários correspondentes.</p>
+            </div>
+          </div>
+        </div>
+        <div class="step3-container" id="step3-output">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Step 4: Serialized Binary String -->
+      <section class="step-card" id="card-step4">
+        <div class="step-header">
+          <div class="step-title-group">
+            <div class="step-number">4</div>
+            <div>
+              <h2 class="step-title">Stream Binário Serializado</h2>
+              <p class="step-desc">União de todas as linhas binárias geradas no passo anterior em uma única sequência contínua.</p>
+            </div>
+          </div>
+        </div>
+        <div class="serialized-stream" id="step4-output">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Step 5: Base Conversion -->
+      <section class="step-card" id="card-step5">
+        <div class="step-header">
+          <div class="step-title-group">
+            <div class="step-number">5</div>
+            <div>
+              <h2 class="step-title">Codificação em Octal ou Hexadecimal</h2>
+              <p class="step-desc">Conversão do fluxo binário serializado para octal (base 8) ou hexadecimal (base 16).</p>
+            </div>
+          </div>
+        </div>
+        <div class="serialized-stream" id="step5-output">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script>
+    // --- Braille 1-to-1 Mapping ---
+    // Mapeamento padrão 6-pontos Braille para letras (a-z), números (0-9) e símbolos mais comuns.
+    // Todos os caracteres acentuados são normalizados para remover acentos antes da consulta.
+    const brailleMap = {
+      'a': '⠁', 'b': '⠃', 'c': '⠉', 'd': '⠙', 'e': '⠑', 'f': '⠋', 'g': '⠛', 'h': '⠓', 'i': '⠊', 'j': '⠚',
+      'k': '⠅', 'l': '⠇', 'm': '⠍', 'n': '⠝', 'o': '⠕', 'p': '⠏', 'q': '⠟', 'r': '⠗', 's': '⠎', 't': '⠞',
+      'u': '⠥', 'v': '⠧', 'w': '⠺', 'x': '⠭', 'y': '⠽', 'z': '⠵',
+      '1': '⠁', '2': '⠃', '3': '⠉', '4': '⠙', '5': '⠑', '6': '⠋', '7': '⠛', '8': '⠓', '9': '⠊', '0': '⠚',
+      ' ': '⠀',
+      ',': '⠂', ';': '⠆', ':': '⠒', '.': '⠲', '!': '⠖', '?': '⠦', '"': '⠴', '(': '⠶', ')': '⠶',
+      '-': '⠤', '/': '⠌', '*': '⠔', '+': '⠖', '=': '⠶', '\n': '⠀'
+    };
+
+    // --- DOM Elements ---
+    const textInput = document.getElementById('text-input');
+    const charCounter = document.getElementById('char-counter');
+    const lengthSlider = document.getElementById('length-slider');
+    const lengthVal = document.getElementById('length-val');
+    const searchInput = document.getElementById('search-input');
+    
+    // Toggle elements
+    const baseToggle = document.getElementById('base-toggle');
+    const toggleOct = document.getElementById('toggle-oct');
+    const toggleHex = document.getElementById('toggle-hex');
+
+    // Outputs
+    const step1Output = document.getElementById('step1-output');
+    const step2Output = document.getElementById('step2-output');
+    const step3Output = document.getElementById('step3-output');
+    const step4Output = document.getElementById('step4-output');
+    const step5Output = document.getElementById('step5-output');
+
+    // --- App State ---
+    let state = {
+      text: textInput.value,
+      lineLength: parseInt(lengthSlider.value),
+      searchQuery: '',
+      isHex: false // false = Octal, true = Hexadecimal
+    };
+
+    // --- Event Listeners ---
+    textInput.addEventListener('input', () => {
+      state.text = textInput.value;
+      charCounter.textContent = `${state.text.length} / 800`;
+      updateUI();
+    });
+
+    lengthSlider.addEventListener('input', () => {
+      state.lineLength = parseInt(lengthSlider.value);
+      lengthVal.textContent = `${state.lineLength} caracs.`;
+      updateUI();
+    });
+
+    searchInput.addEventListener('input', () => {
+      state.searchQuery = searchInput.value;
+      updateUI();
+    });
+
+    // Toggle button logic
+    baseToggle.addEventListener('click', () => {
+      state.isHex = !state.isHex;
+      if (state.isHex) {
+        baseToggle.classList.add('hex-active');
+        toggleHex.classList.add('active');
+        toggleOct.classList.remove('active');
+      } else {
+        baseToggle.classList.remove('hex-active');
+        toggleOct.classList.add('active');
+        toggleHex.classList.remove('active');
+      }
+      updateUI();
+    });
+
+    // --- Helper Functions ---
+
+    // Utility to clean HTML injections
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Normalize accents and lower-case text for dictionary lookup
+    function normalizeText(txt) {
+      return txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
+    // Convert standard character to Braille Unicode
+    function getBrailleChar(char) {
+      const norm = normalizeText(char);
+      return brailleMap[norm] || '⠀'; // defaults to empty cell (space)
+    }
+
+    // Find all matching interval indexes in the input text
+    function getMatchIntervals(text, query) {
+      if (!query) return [];
+      const normText = normalizeText(text);
+      const normQuery = normalizeText(query);
+      const intervals = [];
+      let index = normText.indexOf(normQuery);
+      
+      while (index !== -1) {
+        intervals.push({ start: index, end: index + normQuery.length });
+        index = normText.indexOf(normQuery, index + 1);
+      }
+      return intervals;
+    }
+
+    // Check if a character index is inside any search match interval
+    function isIndexHighlighted(idx, intervals) {
+      return intervals.some(m => idx >= m.start && idx < m.end);
+    }
+
+    // Prepare wrapped lines of objects containing the character and its original index
+    function wrapTextWithIndices(text, maxLength) {
+      const lines = [];
+      let currentLine = [];
+      
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        currentLine.push({ char, origIdx: i });
+        
+        if (char === '\n') {
+          lines.push(currentLine);
+          currentLine = [];
+        } else if (currentLine.length === maxLength) {
+          lines.push(currentLine);
+          currentLine = [];
+        }
+      }
+      if (currentLine.length > 0) {
+        lines.push(currentLine);
+      }
+      return lines;
+    }
+
+    // Deconstruct a single Braille Unicode char into its 3 rows of binary bits
+    // Bits represent: Row 1 [dot1, dot4], Row 2 [dot2, dot5], Row 3 [dot3, dot6]
+    function deconstructBraille(brailleChar) {
+      const code = brailleChar.charCodeAt(0);
+      const offset = code - 0x2800; // Offset from start of Unicode Braille Block
+      
+      return {
+        row1: [ (offset & 1) ? 1 : 0, (offset & 8) ? 1 : 0 ],
+        row2: [ (offset & 2) ? 1 : 0, (offset & 16) ? 1 : 0 ],
+        row3: [ (offset & 4) ? 1 : 0, (offset & 32) ? 1 : 0 ]
+      };
+    }
+
+    // --- UI Update & Rendering Engine ---
+    function updateUI() {
+      // Handle empty state
+      if (state.text.trim().length === 0) {
+        const emptyMsg = `<div class="empty-state">Por favor, digite um texto no campo de entrada da barra lateral.</div>`;
+        step1Output.innerHTML = emptyMsg;
+        step2Output.innerHTML = emptyMsg;
+        step3Output.innerHTML = emptyMsg;
+        step4Output.innerHTML = emptyMsg;
+        step5Output.innerHTML = emptyMsg;
+        
+        // Remove highlighting borders
+        document.querySelectorAll('.step-card').forEach(card => card.classList.remove('active-step'));
+        return;
+      }
+
+      // Check if search highlighting is active
+      const matches = getMatchIntervals(state.text, state.searchQuery);
+      const isSearchActive = state.searchQuery.trim().length > 0;
+
+      // Update cards border states if search has matches
+      const hasMatches = matches.length > 0;
+      document.querySelectorAll('.step-card').forEach(card => {
+        if (isSearchActive && hasMatches) {
+          card.classList.add('active-step');
+        } else {
+          card.classList.remove('active-step');
+        }
+      });
+
+      // Wrap the text according to line length configured
+      const wrappedLines = wrapTextWithIndices(state.text, state.lineLength);
+
+      // --- Passo 1: Wrapped Original Text ---
+      let step1Html = '';
+      for (const line of wrappedLines) {
+        let lineHtml = '';
+        for (const item of line) {
+          const isHigh = isIndexHighlighted(item.origIdx, matches);
+          const markCls = isHigh ? 'class="highlight"' : '';
+          const charText = item.char === '\n' ? '↵' : item.char;
+          const nlCls = item.char === '\n' ? 'char-newline' : '';
+          lineHtml += `<span ${markCls} class="${nlCls}">${escapeHtml(charText)}</span>`;
+        }
+        step1Html += `<div class="preview-line">${lineHtml}</div>`;
+      }
+      step1Output.innerHTML = step1Html;
+
+      // --- Passo 2: Braille Unicode ---
+      let step2Html = '';
+      for (const line of wrappedLines) {
+        let lineHtml = '';
+        for (const item of line) {
+          const isHigh = isIndexHighlighted(item.origIdx, matches);
+          const markCls = isHigh ? 'class="highlight"' : '';
+          const bChar = getBrailleChar(item.char);
+          const displayBChar = item.char === '\n' ? '⠀' : bChar;
+          lineHtml += `<span ${markCls}>${displayBChar}</span>`;
+        }
+        step2Html += `<div class="preview-line braille-font">${lineHtml}</div>`;
+      }
+      step2Output.innerHTML = step2Html;
+
+      // --- Passo 3: Decomposition into 3 sub-lines (visual + text formats) ---
+      let step3Html = '';
+      const binaryBuffer = []; // array of { bit: string, origIdx: number }
+
+      for (let lIdx = 0; lIdx < wrappedLines.length; lIdx++) {
+        const line = wrappedLines[lIdx];
+        
+        let colsHtml = '';
+        const lineRow1 = [];
+        const lineRow2 = [];
+        const lineRow3 = [];
+
+        for (const item of line) {
+          const isHigh = isIndexHighlighted(item.origIdx, matches);
+          const bChar = getBrailleChar(item.char);
+          const dec = deconstructBraille(bChar);
+          
+          // Append cell info for the custom columns view
+          colsHtml += `
+            <div class="braille-cell-col ${isHigh ? 'highlight' : ''}">
+              <div class="cell-orig">${escapeHtml(item.char === '\n' ? '↵' : item.char)}</div>
+              <div class="cell-braille">${item.char === '\n' ? '⠀' : bChar}</div>
+              <div class="cell-dots-grid">
+                <div class="dot ${dec.row1[0] ? 'active' : ''}"></div>
+                <div class="dot ${dec.row1[1] ? 'active' : ''}"></div>
+                <div class="dot ${dec.row2[0] ? 'active' : ''}"></div>
+                <div class="dot ${dec.row2[1] ? 'active' : ''}"></div>
+                <div class="dot ${dec.row3[0] ? 'active' : ''}"></div>
+                <div class="dot ${dec.row3[1] ? 'active' : ''}"></div>
+              </div>
+              <div class="cell-binary-stack">
+                <div>${dec.row1[0]}${dec.row1[1]}</div>
+                <div>${dec.row2[0]}${dec.row2[1]}</div>
+                <div>${dec.row3[0]}${dec.row3[1]}</div>
+              </div>
+            </div>
+          `;
+
+          // Track row bits and indices for Step 3 sub-lines
+          lineRow1.push({ bits: dec.row1, origIdx: item.origIdx });
+          lineRow2.push({ bits: dec.row2, origIdx: item.origIdx });
+          lineRow3.push({ bits: dec.row3, origIdx: item.origIdx });
+        }
+
+        // Generate the 3 sub-lines as text patterns
+        // We will output: Row 1, Row 2, Row 3 as dots and spaces, then Row 1, Row 2, Row 3 as binary
+        let dotsSub1 = '', dotsSub2 = '', dotsSub3 = '';
+        let binSub1 = '', binSub2 = '', binSub3 = '';
+
+        for (let j = 0; j < line.length; j++) {
+          const item = line[j];
+          const isHigh = isIndexHighlighted(item.origIdx, matches);
+          const hlCls = isHigh ? 'class="highlight"' : '';
+          
+          // Row 1
+          const d1 = (lineRow1[j].bits[0] ? '●' : '○') + (lineRow1[j].bits[1] ? '●' : '○');
+          const b1 = lineRow1[j].bits[0].toString() + lineRow1[j].bits[1].toString();
+          dotsSub1 += `<span ${hlCls}>${d1}</span>`;
+          binSub1 += `<span ${hlCls}>${b1}</span>`;
+
+          // Row 2
+          const d2 = (lineRow2[j].bits[0] ? '●' : '○') + (lineRow2[j].bits[1] ? '●' : '○');
+          const b2 = lineRow2[j].bits[0].toString() + lineRow2[j].bits[1].toString();
+          dotsSub2 += `<span ${hlCls}>${d2}</span>`;
+          binSub2 += `<span ${hlCls}>${b2}</span>`;
+
+          // Row 3
+          const d3 = (lineRow3[j].bits[0] ? '●' : '○') + (lineRow3[j].bits[1] ? '●' : '○');
+          const b3 = lineRow3[j].bits[0].toString() + lineRow3[j].bits[1].toString();
+          dotsSub3 += `<span ${hlCls}>${d3}</span>`;
+          binSub3 += `<span ${hlCls}>${b3}</span>`;
+          
+          // Accumulate for serializing step 4: Row 1, then Row 2, then Row 3 for this line
+          // Push bits individually to allow coordinate mapping
+          binaryBuffer.push({ bit: lineRow1[j].bits[0], origIdx: item.origIdx });
+          binaryBuffer.push({ bit: lineRow1[j].bits[1], origIdx: item.origIdx });
+        }
+        
+        // Complete the serialization buffer for the current line
+        for (let j = 0; j < line.length; j++) {
+          binaryBuffer.push({ bit: lineRow2[j].bits[0], origIdx: line[j].origIdx });
+          binaryBuffer.push({ bit: lineRow2[j].bits[1], origIdx: line[j].origIdx });
+        }
+        for (let j = 0; j < line.length; j++) {
+          binaryBuffer.push({ bit: lineRow3[j].bits[0], origIdx: line[j].origIdx });
+          binaryBuffer.push({ bit: lineRow3[j].bits[1], origIdx: line[j].origIdx });
+        }
+
+        step3Html += `
+          <div class="wrapped-line-block">
+            <div class="wrapped-line-info">⚡ LINHA DE ENTRADA ${lIdx + 1}</div>
+            
+            <!-- Character cell grid -->
+            <div class="grid-container">
+              ${colsHtml}
+            </div>
+
+            <!-- Sublines as required -->
+            <div class="sublines-section">
+              <div class="subline-item">
+                <div class="subline-label">Sublinha 1 (●)</div>
+                <div class="subline-display">${dotsSub1}</div>
+              </div>
+              <div class="subline-item">
+                <div class="subline-label">Sublinha 2 (●)</div>
+                <div class="subline-display">${dotsSub2}</div>
+              </div>
+              <div class="subline-item">
+                <div class="subline-label">Sublinha 3 (●)</div>
+                <div class="subline-display">${dotsSub3}</div>
+              </div>
+              
+              <div class="subline-item" style="margin-top: 0.4rem; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 0.4rem;">
+                <div class="subline-label">Binário 1 (1/0)</div>
+                <div class="subline-display">${binSub1}</div>
+              </div>
+              <div class="subline-item">
+                <div class="subline-label">Binário 2 (1/0)</div>
+                <div class="subline-display">${binSub2}</div>
+              </div>
+              <div class="subline-item">
+                <div class="subline-label">Binário 3 (1/0)</div>
+                <div class="subline-display">${binSub3}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      step3Output.innerHTML = step3Html;
+
+      // --- Passo 4: Serialized Binary String ---
+      let step4Html = '';
+      for (const item of binaryBuffer) {
+        const isHigh = isIndexHighlighted(item.origIdx, matches);
+        const hlCls = isHigh ? 'class="highlight"' : '';
+        step4Html += `<span ${hlCls}>${item.bit}</span>`;
+      }
+      step4Output.innerHTML = step4Html;
+
+      // --- Passo 5: Base Encoding Conversion (Hex / Octal) ---
+      let step5Html = '';
+      const groupSize = state.isHex ? 4 : 3;
+      const radix = state.isHex ? 16 : 8;
+
+      // Pad target length to a multiple of groupSize
+      let paddedLength = binaryBuffer.length;
+      while (paddedLength % groupSize !== 0) {
+        paddedLength++;
+      }
+
+      for (let i = 0; i < paddedLength; i += groupSize) {
+        let val = 0;
+        let isGroupHigh = false;
+        
+        for (let b = 0; b < groupSize; b++) {
+          const bitIdx = i + b;
+          if (bitIdx < binaryBuffer.length) {
+            const item = binaryBuffer[bitIdx];
+            if (item.bit === 1) {
+              val |= (1 << (groupSize - 1 - b));
+            }
+            if (isIndexHighlighted(item.origIdx, matches)) {
+              isGroupHigh = true;
+            }
+          }
+        }
+        
+        const encChar = val.toString(radix).toUpperCase();
+        const hlCls = isGroupHigh ? 'class="highlight"' : '';
+        step5Html += `<span ${hlCls}>${encChar}</span>`;
+      }
+      step5Output.innerHTML = step5Html;
+    }
+
+    // --- Initialize App ---
+    charCounter.textContent = `${state.text.length} / 800`;
+    updateUI();
+  </script>
+</body>
+</html>
